@@ -13,7 +13,7 @@ Prototype web app for indoor asset tracking using BLE tags.
 ### 1. Clone Repo
 
 ```bash
-git clone https://github.com/<your-username>/AssetTracking.git
+git clone https://github.com/jordyob03/AssetTracking.git
 cd AssetTracking
 ```
 
