@@ -1,16 +1,18 @@
-import useWS from "./hooks/useWS";
-import MapCanvas from "./components/MapCanvas";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+
+import FloorMapPage from "./pages/FloorMaps";
+import HomePage from "./pages/HomePage";
+import LiveTrackingPage from "./pages/LiveTrack";
 
 export default function App() {
-  const assets = useWS("ws://localhost:4000");
-
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Indoor Asset Tracking MVP</h1>
-
-      <MapCanvas assets={assets} />
-
-      <pre>{JSON.stringify(assets, null, 2)}</pre>
-    </div>
+    <Router>
+      <Routes>
+        {/* <Route path="/" element={<AssetMapPage />} /> */}
+        <Route path="/editor" element={<FloorMapPage />} />
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/live" element={<LiveTrackingPage />} />
+      </Routes>
+    </Router>
   );
 }
