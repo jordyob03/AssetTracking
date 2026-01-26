@@ -1,28 +1,61 @@
-import React, { useState, useRef } from "react";
-import { Stage, Layer, Rect, Text } from "react-konva";
+
+// ================================
+// File: src/components/FloorMapEditor.jsx
+// ================================
+
+import React, { useState, useRef, useEffect } from "react";
+import { Stage, Layer } from "react-konva";
+import RoomNode from "./RoomNode";
 
 export default function FloorMapEditor() {
   const stageRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // -----------------------------
-  // Rooms stored in METERS
-  // -----------------------------
-  const [rectangles, setRectangles] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   const [roomWidth, setRoomWidth] = useState(5);
   const [roomHeight, setRoomHeight] = useState(4);
 
-  // Global zoom: pixels per meter
+  // pixels per meter
   const [zoom, setZoom] = useState(50);
 
   const SNAP_DISTANCE = 0.2; // meters
 
   // -----------------------------
-  // Overlap detection (meters)
+  // WebSocket (live asset feed)
+  // -----------------------------
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:4000");
+
+    ws.onmessage = (msg) => {
+      const data = JSON.parse(msg.data);
+
+      if (data.type === "asset_update") {
+        setRooms((prev) =>
+          prev.map((room) => ({
+            ...room,
+            assets: data.assets
+              .filter((a) => a.roomId === room.id)
+              .map((a) => ({
+                id: a.id,
+                name: a.name,
+                x: a.x - room.x,
+                y: a.y - room.y,
+              })),
+          }))
+        );
+      }
+    };
+
+    return () => ws.close();
+  }, []);
+
+  // -----------------------------
+  // Overlap detection
   // -----------------------------
   const isOverlapping = (rect, ignoreId = null) => {
-    return rectangles.some((r) => {
+    return rooms.some((r) => {
       if (r.id === ignoreId) return false;
 
       return !(
@@ -35,15 +68,15 @@ export default function FloorMapEditor() {
   };
 
   // -----------------------------
-  // Snap rooms (meters)
+  // Snap rooms
   // -----------------------------
-  const snapRect = (rect, ignoreId) => {
-    let snapped = { ...rect };
+  const snapRoom = (room, ignoreId) => {
+    let snapped = { ...room };
 
-    rectangles.forEach((r) => {
+    rooms.forEach((r) => {
       if (r.id === ignoreId) return;
 
-      // Horizontal snapping
+      // Horizontal
       if (Math.abs(snapped.x - (r.x + r.width)) < SNAP_DISTANCE) {
         snapped.x = r.x + r.width;
       }
@@ -51,7 +84,7 @@ export default function FloorMapEditor() {
         snapped.x = r.x - snapped.width;
       }
 
-      // Vertical snapping
+      // Vertical
       if (Math.abs(snapped.y - (r.y + r.height)) < SNAP_DISTANCE) {
         snapped.y = r.y + r.height;
       }
@@ -64,55 +97,47 @@ export default function FloorMapEditor() {
   };
 
   // -----------------------------
-  // Place new room
+  // Create room
   // -----------------------------
   const handleMouseDown = (e) => {
     if (e.target !== stageRef.current) return;
 
     const pointer = stageRef.current.getPointerPosition();
 
-    const rect = {
+    const newRoom = {
       id: Date.now(),
+      name: `Room ${rooms.length + 1}`,
       x: pointer.x / zoom,
       y: pointer.y / zoom,
       width: roomWidth,
       height: roomHeight,
+      assets: [],
     };
 
-    if (!isOverlapping(rect)) {
-      setRectangles((prev) => [...prev, rect]);
+    if (!isOverlapping(newRoom)) {
+      setRooms((prev) => [...prev, newRoom]);
     }
   };
 
   // -----------------------------
-  // Drag logic
+  // Move room
   // -----------------------------
-  const handleDragEnd = (e, rect) => {
-    const node = e.target;
+  const moveRoom = (id, pos) => {
+    setRooms((prev) =>
+      prev.map((room) => {
+        if (room.id !== id) return room;
 
-    let updated = {
-      ...rect,
-      x: node.x(),
-      y: node.y(),
-    };
+        let updated = { ...room, ...pos };
+        updated = snapRoom(updated, id);
 
-    updated = snapRect(updated, rect.id);
-
-    if (isOverlapping(updated, rect.id)) {
-      node.position({
-        x: rect.x,
-        y: rect.y,
-      });
-      node.getLayer().batchDraw();
-    } else {
-      setRectangles((prev) =>
-        prev.map((r) => (r.id === rect.id ? updated : r))
-      );
-    }
+        if (isOverlapping(updated, id)) return room;
+        return updated;
+      })
+    );
   };
 
   // -----------------------------
-  // Mouse wheel zoom
+  // Zoom
   // -----------------------------
   const handleWheel = (e) => {
     e.evt.preventDefault();
@@ -124,13 +149,13 @@ export default function FloorMapEditor() {
   };
 
   // -----------------------------
-  // Save as JSON
+  // Save JSON
   // -----------------------------
   const saveAsJSON = () => {
     const data = {
       units: "meters",
       zoom,
-      rooms: rectangles,
+      rooms,
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -146,7 +171,7 @@ export default function FloorMapEditor() {
   };
 
   // -----------------------------
-  // Load from JSON
+  // Load JSON
   // -----------------------------
   const handleLoadFile = (e) => {
     const file = e.target.files[0];
@@ -162,17 +187,17 @@ export default function FloorMapEditor() {
           return;
         }
 
-        setRectangles(data.rooms);
+        setRooms(data.rooms);
         if (typeof data.zoom === "number") {
           setZoom(data.zoom);
         }
-      } catch (err) {
+      } catch {
         alert("Failed to load JSON file");
       }
     };
 
     reader.readAsText(file);
-    e.target.value = null; // allow reloading same file
+    e.target.value = null;
   };
 
   // -----------------------------
@@ -182,7 +207,6 @@ export default function FloorMapEditor() {
     <div className="space-y-4">
       <h2 className="text-xl font-bold">Floor Map Editor</h2>
 
-      {/* Controls */}
       <div className="flex flex-wrap gap-4 bg-gray-100 p-3 rounded items-center">
         <label className="flex items-center gap-2">
           Width (m)
@@ -206,14 +230,14 @@ export default function FloorMapEditor() {
 
         <button
           onClick={saveAsJSON}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-secondary"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Save as JSON
+          Save JSON
         </button>
 
         <button
           onClick={() => fileInputRef.current.click()}
-          className="px-4 py-2 bg-primary text-white rounded hover:bg-secondary"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Load JSON
         </button>
@@ -227,11 +251,10 @@ export default function FloorMapEditor() {
         />
 
         <span className="text-gray-600">
-          Scroll to zoom · Click to place · Drag to move
+          Scroll to zoom · Click to place · Drag room to move
         </span>
       </div>
 
-      {/* Canvas */}
       <Stage
         width={800}
         height={600}
@@ -243,32 +266,19 @@ export default function FloorMapEditor() {
         style={{ border: "2px solid #333", background: "#fafafa" }}
       >
         <Layer>
-          {rectangles.map((rect) => (
-            <React.Fragment key={rect.id}>
-              <Rect
-                x={rect.x}
-                y={rect.y}
-                width={rect.width}
-                height={rect.height}
-                fill="rgba(0,128,255,0.3)"
-                stroke="black"
-                strokeWidth={1 / zoom}
-                draggable
-                onDragEnd={(e) => handleDragEnd(e, rect)}
-              />
-
-              <Text
-                x={rect.x + 0.1}
-                y={rect.y + 0.1}
-                text={`${rect.width}m × ${rect.height}m`}
-                fontSize={0.3}
-                fill="black"
-                listening={false}
-              />
-            </React.Fragment>
+          {rooms.map((room) => (
+            <RoomNode
+              key={room.id}
+              room={room}
+              zoom={zoom}
+              onMove={moveRoom}
+              onSelect={setSelectedRoom}
+            />
           ))}
         </Layer>
       </Stage>
     </div>
   );
 }
+
+
