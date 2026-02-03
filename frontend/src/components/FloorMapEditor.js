@@ -17,6 +17,8 @@ export default function FloorMapEditor() {
   const [roomWidth, setRoomWidth] = useState(5);
   const [roomHeight, setRoomHeight] = useState(4);
 
+  const [roomName, setRoomName] = useState("");
+
   // pixels per meter
   const [zoom, setZoom] = useState(50);
 
@@ -106,7 +108,7 @@ export default function FloorMapEditor() {
 
     const newRoom = {
       id: Date.now(),
-      name: `Room ${rooms.length + 1}`,
+      name: roomName,
       x: pointer.x / zoom,
       y: pointer.y / zoom,
       width: roomWidth,
@@ -205,7 +207,6 @@ export default function FloorMapEditor() {
   // -----------------------------
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold">Floor Map Editor</h2>
 
       <div className="flex flex-wrap gap-4 bg-gray-100 p-3 rounded items-center">
         <label className="flex items-center gap-2">
@@ -228,27 +229,16 @@ export default function FloorMapEditor() {
           />
         </label>
 
-        <button
-          onClick={saveAsJSON}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Save JSON
-        </button>
+        <label className="flex items-center gap-2">
+          Room name
+          <input
+            type="string"
+            value={roomName}
+            onChange={(e) => setRoomName(String(e.target.value))}
+            className="w-20 px-2 py-1 border rounded"
+          />
+        </label>
 
-        <button
-          onClick={() => fileInputRef.current.click()}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          Load JSON
-        </button>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleLoadFile}
-          hidden
-        />
 
         <span className="text-gray-600">
           Scroll to zoom · Click to place · Drag room to move
@@ -277,6 +267,29 @@ export default function FloorMapEditor() {
           ))}
         </Layer>
       </Stage>
+
+
+        <button
+          onClick={saveAsJSON}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700"
+        >
+          Save Floor Plan
+        </button>
+
+        <button
+          onClick={() => fileInputRef.current.click()}
+          className="px-4 py-2 bg-primary text-white rounded hover:bg-blue-700"
+        >
+          Load Floor Plan
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleLoadFile}
+          hidden
+        />
     </div>
   );
 }
