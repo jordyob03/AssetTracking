@@ -1,12 +1,3 @@
-
-// ==================================================
-// BACKEND FILES
-// ==================================================
-
-// ================================
-// File: backend/server.js
-// ================================
-
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -19,11 +10,8 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 const FLOOR_FILE = "./floor-plan.json";
-const ASSET_STATE_FILE = "./asset-state.json";
 
-// ----------------------------
-// Load floor plan
-// ----------------------------
+
 function loadFloor() {
   try {
     return JSON.parse(fs.readFileSync(FLOOR_FILE));
@@ -32,38 +20,27 @@ function loadFloor() {
   }
 }
 
-// ----------------------------
-// Asset state (world coords)
-// ----------------------------
+
 const assets = {
-  tag1: { id: "tag1", name: "Forklift", x: 5, y: 5, roomId: null },
-  tag2: { id: "tag2", name: "Pallet Jack", x: 10, y: 10, roomId: null },
+  tag1: { id: "tag1", name: "Heart Monitor A", roomId: null },
+  tag2: { id: "tag2", name: "Heart Monitor B", roomId: null },
 };
 
-// ----------------------------
-// Find room for asset
-// ----------------------------
-function findRoom(asset, rooms) {
-  return rooms.find((room) => {
-    return (
-      asset.x >= room.x &&
-      asset.x <= room.x + room.width &&
-      asset.y >= room.y &&
-      asset.y <= room.y + room.height
-    );
-  });
-}
+const ROOM_PATH = [
+  "Room 401",
+  "Hall",
+  "Room 402",
+  "Hall",
+  "Room 403",
+  "Hall",
+];
 
-// ----------------------------
-// HTTP API
-// ----------------------------
+let pathIndex = 0;
+
 app.get("/api/assets", (req, res) => {
   res.json(Object.values(assets));
 });
 
-// ----------------------------
-// Start server
-// ----------------------------
 const server = app.listen(PORT, () => {
   console.log("Backend running on port", PORT);
 });
@@ -72,7 +49,7 @@ const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
   console.log("Frontend connected");
-  ws.send(JSON.stringify({ type: "hello", msg: "WebSocket OK" }));
+  ws.send(JSON.stringify({ type: "hello" }));
 });
 
 // ----------------------------
@@ -87,33 +64,26 @@ function broadcast(payload) {
 }
 
 // ----------------------------
-// Mock movement loop
+// Room cycle loop (shared)
 // ----------------------------
 setInterval(() => {
   const floor = loadFloor();
 
-  Object.values(assets).forEach((asset) => {
-    // random movement in meters
-    asset.x += (Math.random() - 0.5) * 1;
-    asset.y += (Math.random() - 0.5) * 1;
+  const nextRoomName = ROOM_PATH[pathIndex % ROOM_PATH.length];
+  const room = floor.rooms.find(r => r.name === nextRoomName);
 
-    const room = findRoom(asset, floor.rooms);
-    asset.roomId = room ? room.id : null;
-  });
+  if (room) {
+    Object.values(assets).forEach(asset => {
+      asset.roomId = room.id;
+      console.log(`${asset.name} → ${room.name}`);
+    });
+  }
 
-  const snapshot = {
-    timestamp: Date.now(),
-    assets,
-  };
+  pathIndex++;
 
-  // Save snapshot
-  fs.writeFileSync(ASSET_STATE_FILE, JSON.stringify(snapshot, null, 2));
-
-  // Broadcast to frontend
   broadcast({
     type: "asset_update",
     assets: Object.values(assets),
   });
-}, 1000);
 
-
+}, 2000);
