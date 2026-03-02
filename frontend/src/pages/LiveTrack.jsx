@@ -35,6 +35,20 @@ export default function LiveTrackingPage() {
     return () => ws.close();
   }, []);
 
+  const assetTypes = {
+    heart_monitor: { label: "Heart Monitor", color: "#e53935" },
+    iv_stand: { label: "IV Stand", color: "#1e88e5" },
+    nurse: { label: "Nurse", color: "#d81b60" },
+    stretcher: { label: "Stretcher", color: "#6d4c41" },
+    wheelchair: { label: "Wheelchair", color: "#5e35b1" },
+    infusion_pump: { label: "Infusion Pump", color: "#00897b" },
+    ventilator: { label: "Ventilator", color: "#f4511e" },
+    ultrasound: { label: "Ultrasound Machine", color: "#3949ab" },
+    ecg_machine: { label: "ECG Machine", color: "#c0ca33" },
+    crash_cart: { label: "Crash Cart", color: "#b71c1c" },
+    oxygen_tank: { label: "Oxygen Tank", color: "#00acc1" },
+    medication_cart: { label: "Medication Cart", color: "#8e24aa" }
+  };
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <TopNav />
@@ -45,6 +59,7 @@ export default function LiveTrackingPage() {
           <AssetDirectory
             assets={assets}
             floorData={floorData}
+            assetTypes={assetTypes}
           />
 
           {/* Left: Floor Map */}
@@ -54,6 +69,7 @@ export default function LiveTrackingPage() {
                 <FloorMapViewer
                   floorData={floorData}
                   assets={assets}
+                  assetTypes={assetTypes}
                 />
               </div>
             ) : (

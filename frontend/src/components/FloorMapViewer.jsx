@@ -1,28 +1,12 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Rect, Text, Circle, Group } from "react-konva";
 
-export default function FloorMapViewer({ floorData, assets = [] }) {
+export default function FloorMapViewer({ floorData, assets = [], assetTypes = {} }) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
 
   const [zoom, setZoom] = useState(floorData.zoom || 50);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
-
-  // List of assets we can track for demo, set default colours here
-  const [assetTypes, setAssetTypes] = useState({
-    heart_monitor: { label: "Heart Monitor", color: "#e53935" },
-    iv_stand: { label: "IV Stand", color: "#1e88e5" },
-    nurse: { label: "Nurse", color: "#d81b60" },
-    stretcher: { label: "Stretcher", color: "#6d4c41" },
-    wheelchair: { label: "Wheelchair", color: "#5e35b1" },
-    infusion_pump: { label: "Infusion Pump", color: "#00897b" },
-    ventilator: { label: "Ventilator", color: "#f4511e" },
-    ultrasound: { label: "Ultrasound Machine", color: "#3949ab" },
-    ecg_machine: { label: "ECG Machine", color: "#c0ca33" },
-    crash_cart: { label: "Crash Cart", color: "#b71c1c" },
-    oxygen_tank: { label: "Oxygen Tank", color: "#00acc1" },
-    medication_cart: { label: "Medication Cart", color: "#8e24aa" }
-  });
 
 
   useEffect(() => {

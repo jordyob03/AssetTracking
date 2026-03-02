@@ -36,26 +36,36 @@ export default function AssetDirectory({
       ) : (
         <div className="space-y-3">
           {Object.entries(groupedAssets).map(([type, typeAssets]) => {
-            const typeLabel =
-              assetTypes[type]?.label || type;
-
+            
             return (
               <div
                 key={type}
                 className="border rounded-md"
               >
                 {/* Dropdown Header */}
-                <button
-                  onClick={() => toggleType(type)}
-                  className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 font-medium flex justify-between items-center"
-                >
+              <button
+                onClick={() => toggleType(type)}
+                className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 font-medium flex justify-between items-center"
+              >
+                <div className="flex items-center gap-2">
+                  {/* Colored Circle */}
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{
+                      backgroundColor:
+                        assetTypes[type]?.color || "gray",
+                    }}
+                  />
+
                   <span>
-                    {typeLabel} ({typeAssets.length})
+                    {assetTypes[type]?.label || type} ({typeAssets.length})
                   </span>
-                  <span>
-                    {openTypes[type] ? "−" : "+"}
-                  </span>
-                </button>
+                </div>
+
+                <span>
+                  {openTypes[type] ? "−" : "+"}
+                </span>
+              </button>
 
                 {openTypes[type] && (
                   <ul className="p-2 space-y-2">
