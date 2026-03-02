@@ -1,21 +1,34 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Stage, Layer, Rect, Text, Circle, Group } from "react-konva";
 
-export default function FloorMapViewer({ floorData }) {
+export default function FloorMapViewer({ floorData, assets = [] }) {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
 
   const [zoom, setZoom] = useState(floorData.zoom || 50);
   const [stageSize, setStageSize] = useState({ width: 800, height: 600 });
-  const [assets, setAssets] = useState([]);
 
-  // -----------------------------
-  // Resize to 80% of screen
-  // -----------------------------
+  // List of assets we can track for demo, set default colours here
+  const [assetTypes, setAssetTypes] = useState({
+    heart_monitor: { label: "Heart Monitor", color: "#e53935" },
+    iv_stand: { label: "IV Stand", color: "#1e88e5" },
+    nurse: { label: "Nurse", color: "#d81b60" },
+    stretcher: { label: "Stretcher", color: "#6d4c41" },
+    wheelchair: { label: "Wheelchair", color: "#5e35b1" },
+    infusion_pump: { label: "Infusion Pump", color: "#00897b" },
+    ventilator: { label: "Ventilator", color: "#f4511e" },
+    ultrasound: { label: "Ultrasound Machine", color: "#3949ab" },
+    ecg_machine: { label: "ECG Machine", color: "#c0ca33" },
+    crash_cart: { label: "Crash Cart", color: "#b71c1c" },
+    oxygen_tank: { label: "Oxygen Tank", color: "#00acc1" },
+    medication_cart: { label: "Medication Cart", color: "#8e24aa" }
+  });
+
+
   useEffect(() => {
     const updateSize = () => {
       setStageSize({
-        width: window.innerWidth * 0.8,
+        width: window.innerWidth * 0.7, // Make room for directory
         height: window.innerHeight * 0.8,
       });
     };
@@ -25,28 +38,6 @@ export default function FloorMapViewer({ floorData }) {
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // -----------------------------
-  // WebSocket live asset feed
-  // -----------------------------
-  useEffect(() => {
-    const ws = new WebSocket("ws://localhost:4000");
-
-    ws.onmessage = (msg) => {
-      const data = JSON.parse(msg.data);
-      if (data.type === "asset_update") {
-        setAssets(data.assets);
-      }
-    };
-
-    ws.onopen = () => console.log("WS connected");
-    ws.onclose = () => console.log("WS closed");
-
-    return () => ws.close();
-  }, []);
-
-  // -----------------------------
-  // Zoom with mouse wheel
-  // -----------------------------
   const handleWheel = (e) => {
     e.evt.preventDefault();
     const scaleBy = 1.05;
@@ -54,17 +45,15 @@ export default function FloorMapViewer({ floorData }) {
     setZoom((z) => (direction > 0 ? z * scaleBy : z / scaleBy));
   };
 
-  const ICON_RADIUS = 0.2; 
-  const PADDING = 0.5;     
+  // Set size for now
+  const ICON_RADIUS = 0.2;
+  const PADDING = 0.5;
 
-  // -----------------------------
-  // Render
-  // -----------------------------
   return (
     <div
       ref={containerRef}
       style={{
-        width: "80vw",
+        width: "100%",
         height: "80vh",
         margin: "0 auto",
       }}
@@ -79,9 +68,10 @@ export default function FloorMapViewer({ floorData }) {
         style={{ border: "2px solid #333", background: "#fafafa" }}
       >
         <Layer>
-
           {floorData.rooms?.map((room) => {
-            const roomAssets = assets.filter(a => a.roomId === room.id);
+            const roomAssets = assets.filter(
+              (a) => a.roomId === room.id
+            );
             const count = roomAssets.length;
 
             const usableW = Math.max(room.width - PADDING * 2, 0.1);
@@ -95,7 +85,6 @@ export default function FloorMapViewer({ floorData }) {
 
             return (
               <Group key={room.id} x={room.x} y={room.y}>
-
                 {/* Room */}
                 <Rect
                   width={room.width}
@@ -120,12 +109,17 @@ export default function FloorMapViewer({ floorData }) {
                   const col = i % cols;
                   const row = Math.floor(i / cols);
 
-                  const x = PADDING + col * cellW + cellW / 2;
-                  const y = PADDING + row * cellH + cellH / 2;
+                  const x =
+                    PADDING + col * cellW + cellW / 2;
+                  const y =
+                    PADDING + row * cellH + cellH / 2;
 
                   return (
                     <Group key={asset.id} x={x} y={y}>
-                      <Circle radius={ICON_RADIUS} fill="red" />
+                    <Circle
+                      radius={ICON_RADIUS}
+                      fill={assetTypes[asset.type]?.color || "gray"}
+                    />
                       <Text
                         x={ICON_RADIUS + 0.1}
                         y={-ICON_RADIUS}
@@ -136,11 +130,9 @@ export default function FloorMapViewer({ floorData }) {
                     </Group>
                   );
                 })}
-
               </Group>
             );
           })}
-
         </Layer>
       </Stage>
     </div>

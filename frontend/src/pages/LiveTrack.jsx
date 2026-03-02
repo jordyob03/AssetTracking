@@ -1,19 +1,16 @@
-// ================================
-// File: src/pages/LiveTrackingPage.jsx
-// ================================
-
 import { useState, useEffect } from "react";
 import TopNav from "../components/TopNavBar";
 import FloorMapViewer from "../components/FloorMapViewer";
+import AssetDirectory from "../components/AssetDirectory";
 
 export default function LiveTrackingPage() {
   const [floorData, setFloorData] = useState(null);
+  const [assets, setAssets] = useState([]);
 
-  // Load floor plan from public/floor-plan.json
   useEffect(() => {
     async function fetchFloor() {
       try {
-        const res = await fetch("/floor-plan.json"); // public folder
+        const res = await fetch("/floor-plan.json");
         if (!res.ok) throw new Error("Failed to fetch floor plan");
         const data = await res.json();
         setFloorData(data);
@@ -25,34 +22,45 @@ export default function LiveTrackingPage() {
     fetchFloor();
   }, []);
 
-  
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:4000");
+
+    ws.onmessage = (msg) => {
+      const data = JSON.parse(msg.data);
+      if (data.type === "asset_update") {
+        setAssets(data.assets);
+      }
+    };
+
+    return () => ws.close();
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
-      {/* Top navigation */}
       <TopNav />
 
-      {/* Main content */}
       <main className="flex-1 w-full p-6">
+        <div className="flex gap-6 w-full">
 
-        <div className="w-[80vw] mx-auto space-y-6">
+          <AssetDirectory
+            assets={assets}
+            floorData={floorData}
+          />
 
-          <header className="space-y-2">
-            <h2 className="text-2xl font-semibold text-gray-900">
-              Live Tracking
-            </h2>
-            <p className="text-gray-600">
-              View real-time asset movement on the floor plan.
-            </p>
-          </header>
+          {/* Left: Floor Map */}
+          <div className="flex-1">
+            {floorData ? (
+              <div className="bg-white p-4 rounded-lg shadow">
+                <FloorMapViewer
+                  floorData={floorData}
+                  assets={assets}
+                />
+              </div>
+            ) : (
+              <p className="text-gray-500">Loading floor plan...</p>
+            )}
+          </div>
 
-          {floorData ? (
-            <div className="bg-white p-4 rounded-lg shadow flex justify-center">
-              <FloorMapViewer floorData={floorData} />
-            </div>
-          ) : (
-            <p className="text-gray-500">Loading floor plan...</p>
-          )}
 
         </div>
       </main>

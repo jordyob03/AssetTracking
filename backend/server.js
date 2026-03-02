@@ -20,20 +20,13 @@ function loadFloor() {
   }
 }
 
-
 const assets = {
-  tag1: { id: "tag1", name: "Heart Monitor A", roomId: null },
-  tag2: { id: "tag2", name: "Heart Monitor B", roomId: null },
+  tag1: { id: "tag1", name: "Heart Monitor A", roomId: null, type: "heart_monitor" },
+  tag2: { id: "tag2", name: "Jordyn O", roomId: null, type: "nurse"},
+  tag3: { id: "tag3", name: "Miguel P", roomId: null, type: "nurse"},
+  tag4: { id: "tag4", name: "Mitch R", roomId: null, type: "nurse"},
 };
 
-const ROOM_PATH = [
-  "Room 401",
-  "Hall",
-  "Room 402",
-  "Hall",
-  "Room 403",
-  "Hall",
-];
 
 let pathIndex = 0;
 
@@ -52,9 +45,7 @@ wss.on("connection", (ws) => {
   ws.send(JSON.stringify({ type: "hello" }));
 });
 
-// ----------------------------
-// Broadcast helper
-// ----------------------------
+
 function broadcast(payload) {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -63,23 +54,41 @@ function broadcast(payload) {
   });
 }
 
-// ----------------------------
-// Room cycle loop (shared)
-// ----------------------------
 setInterval(() => {
   const floor = loadFloor();
+  if (!floor.rooms || floor.rooms.length === 0) return;
 
-  const nextRoomName = ROOM_PATH[pathIndex % ROOM_PATH.length];
-  const room = floor.rooms.find(r => r.name === nextRoomName);
+  const hall = floor.rooms.find(r => r.name === "Hall");
+  const otherRooms = floor.rooms.filter(r => r.name !== "Hall");
 
-  if (room) {
-    Object.values(assets).forEach(asset => {
-      asset.roomId = room.id;
-      console.log(`${asset.name} → ${room.name}`);
-    });
-  }
+  Object.values(assets).forEach(asset => {
+    const shouldMove = Math.random() < 0.2; // 20% chance to move
 
-  pathIndex++;
+    if (!shouldMove) {
+      return; 
+    }
+
+    const currentRoom = floor.rooms.find(r => r.id === asset.roomId);
+
+    if (!currentRoom) {
+      const randomRoom = floor.rooms[Math.floor(Math.random() * floor.rooms.length)];
+      asset.roomId = randomRoom.id;
+      console.log(`${asset.name} initialized → ${randomRoom.name}`);
+      return;
+    }
+
+    if (currentRoom.name === "Hall") {
+      const randomRoom = otherRooms[Math.floor(Math.random() * otherRooms.length)];
+      asset.roomId = randomRoom.id;
+      console.log(`${asset.name} moved Hall → ${randomRoom.name}`);
+    } 
+    else {
+      if (hall) {
+        asset.roomId = hall.id;
+        console.log(`${asset.name} moved ${currentRoom.name} → Hall`);
+      }
+    }
+  });
 
   broadcast({
     type: "asset_update",
