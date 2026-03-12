@@ -21,14 +21,15 @@ function loadFloor() {
 }
 
 const assets = {
-  tag1: { id: "tag1", name: "Heart Monitor A", roomId: null, type: "heart_monitor" },
+  tag1: { id: "tag1", name: "Heart Monitor 1", roomId: null, type: "heart_monitor" },
   tag2: { id: "tag2", name: "Jordyn O", roomId: null, type: "nurse"},
   tag3: { id: "tag3", name: "Miguel P", roomId: null, type: "nurse"},
   tag4: { id: "tag4", name: "Mitch R", roomId: null, type: "nurse"},
+  tag5: { id: "tag5", name: "Stretcher 1", roomId: null, type: "stretcher"},
+  tag6: { id: "tag6", name: "Stretcher 2", roomId: null, type: "stretcher"},
+  tag7: { id: "tag7", name: "ECG Machine", roomId: null, type: "ecg_machine"},
 };
 
-
-let pathIndex = 0;
 
 app.get("/api/assets", (req, res) => {
   res.json(Object.values(assets));

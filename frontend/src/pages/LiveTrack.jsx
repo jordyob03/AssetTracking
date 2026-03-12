@@ -6,6 +6,8 @@ import AssetDirectory from "../components/AssetDirectory";
 export default function LiveTrackingPage() {
   const [floorData, setFloorData] = useState(null);
   const [assets, setAssets] = useState([]);
+  const [assetTypes, setAssetTypes] = useState({});
+  const [visibleTypes, setVisibleTypes] = useState({});
 
   useEffect(() => {
     async function fetchFloor() {
@@ -19,7 +21,22 @@ export default function LiveTrackingPage() {
       }
     }
 
+    async function fetchAssetTypes() {
+      try {
+        const res = await fetch("/asset-types.json");
+        const data = await res.json();
+        setAssetTypes(data);
+
+        const defaults = {};
+        Object.keys(data).forEach((t) => (defaults[t] = true));
+        setVisibleTypes(defaults);
+      } catch (err) {
+        console.error("Error loading asset types:", err);
+      }
+    }
+
     fetchFloor();
+    fetchAssetTypes();
   }, []);
 
   useEffect(() => {
@@ -35,20 +52,6 @@ export default function LiveTrackingPage() {
     return () => ws.close();
   }, []);
 
-  const assetTypes = {
-    heart_monitor: { label: "Heart Monitor", color: "#e53935" },
-    iv_stand: { label: "IV Stand", color: "#1e88e5" },
-    nurse: { label: "Nurse", color: "#d81b60" },
-    stretcher: { label: "Stretcher", color: "#6d4c41" },
-    wheelchair: { label: "Wheelchair", color: "#5e35b1" },
-    infusion_pump: { label: "Infusion Pump", color: "#00897b" },
-    ventilator: { label: "Ventilator", color: "#f4511e" },
-    ultrasound: { label: "Ultrasound Machine", color: "#3949ab" },
-    ecg_machine: { label: "ECG Machine", color: "#c0ca33" },
-    crash_cart: { label: "Crash Cart", color: "#b71c1c" },
-    oxygen_tank: { label: "Oxygen Tank", color: "#00acc1" },
-    medication_cart: { label: "Medication Cart", color: "#8e24aa" }
-  };
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <TopNav />
@@ -60,9 +63,10 @@ export default function LiveTrackingPage() {
             assets={assets}
             floorData={floorData}
             assetTypes={assetTypes}
+            visibleTypes={visibleTypes}
+            setVisibleTypes={setVisibleTypes}
           />
 
-          {/* Left: Floor Map */}
           <div className="flex-1">
             {floorData ? (
               <div className="bg-white p-4 rounded-lg shadow">
@@ -70,13 +74,13 @@ export default function LiveTrackingPage() {
                   floorData={floorData}
                   assets={assets}
                   assetTypes={assetTypes}
+                  visibleTypes={visibleTypes}
                 />
               </div>
             ) : (
               <p className="text-gray-500">Loading floor plan...</p>
             )}
           </div>
-
 
         </div>
       </main>

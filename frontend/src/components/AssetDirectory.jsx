@@ -4,7 +4,10 @@ export default function AssetDirectory({
   assets = [],
   floorData,
   assetTypes = {},
+  visibleTypes,
+  setVisibleTypes
 }) {
+
   const [openTypes, setOpenTypes] = useState({});
 
   const getRoomName = (roomId) => {
@@ -25,6 +28,13 @@ export default function AssetDirectory({
     }));
   };
 
+  const toggleVisibility = (type) => {
+    setVisibleTypes((prev) => ({
+      ...prev,
+      [type]: !prev[type],
+    }));
+  };
+
   return (
     <div className="w-80 bg-white shadow-lg rounded-lg p-4 h-[80vh] overflow-y-auto">
       <h3 className="text-lg font-semibold mb-4 border-b pb-2">
@@ -35,20 +45,27 @@ export default function AssetDirectory({
         <p className="text-gray-500">No active assets</p>
       ) : (
         <div className="space-y-3">
-          {Object.entries(groupedAssets).map(([type, typeAssets]) => {
-            
-            return (
-              <div
-                key={type}
-                className="border rounded-md"
-              >
-                {/* Dropdown Header */}
+
+          {Object.entries(groupedAssets).map(([type, typeAssets]) => (
+
+            <div key={type} className="border rounded-md">
+
               <button
                 onClick={() => toggleType(type)}
                 className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 font-medium flex justify-between items-center"
               >
+
                 <div className="flex items-center gap-2">
-                  {/* Colored Circle */}
+
+                  <input
+                    type="checkbox"
+                    checked={visibleTypes[type] ?? true}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleVisibility(type);
+                    }}
+                  />
+
                   <span
                     className="w-3 h-3 rounded-full"
                     style={{
@@ -60,33 +77,40 @@ export default function AssetDirectory({
                   <span>
                     {assetTypes[type]?.label || type} ({typeAssets.length})
                   </span>
+
                 </div>
 
                 <span>
                   {openTypes[type] ? "−" : "+"}
                 </span>
+
               </button>
 
-                {openTypes[type] && (
-                  <ul className="p-2 space-y-2">
-                    {typeAssets.map((asset) => (
-                      <li
-                        key={asset.id}
-                        className="p-2 bg-gray-50 rounded border hover:bg-gray-100 transition"
-                      >
-                        <div className="font-medium text-gray-900">
-                          {asset.name}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Room: {getRoomName(asset.roomId)}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            );
-          })}
+              {openTypes[type] && (
+                <ul className="p-2 space-y-2">
+
+                  {typeAssets.map((asset) => (
+                    <li
+                      key={asset.id}
+                      className="p-2 bg-gray-50 rounded border"
+                    >
+                      <div className="font-medium text-gray-900">
+                        {asset.name}
+                      </div>
+
+                      <div className="text-sm text-gray-600">
+                        Room: {getRoomName(asset.roomId)}
+                      </div>
+                    </li>
+                  ))}
+
+                </ul>
+              )}
+
+            </div>
+
+          ))}
+
         </div>
       )}
     </div>
