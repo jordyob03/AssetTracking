@@ -11,7 +11,6 @@ app.use(express.json());
 const PORT = process.env.PORT || 4000;
 const FLOOR_FILE = "./floor-plan.json";
 
-
 function loadFloor() {
   try {
     return JSON.parse(fs.readFileSync(FLOOR_FILE));
@@ -21,15 +20,15 @@ function loadFloor() {
 }
 
 const assets = {
-  tag1: { id: "tag1", name: "Heart Monitor 1", roomId: null, type: "heart_monitor" },
-  tag2: { id: "tag2", name: "Jordyn O", roomId: null, type: "nurse"},
-  tag3: { id: "tag3", name: "Miguel P", roomId: null, type: "nurse"},
-  tag4: { id: "tag4", name: "Mitch R", roomId: null, type: "nurse"},
-  tag5: { id: "tag5", name: "Stretcher 1", roomId: null, type: "stretcher"},
-  tag6: { id: "tag6", name: "Stretcher 2", roomId: null, type: "stretcher"},
-  tag7: { id: "tag7", name: "ECG Machine", roomId: null, type: "ecg_machine"},
+  tag1: { id: "tag1", name: "Heart Monitor 1", roomId: 1769697061224, type: "heart_monitor", inUse: true },
+  tag2: { id: "tag2", name: "Jordyn O", roomId: 1769697061224, type: "nurse", inUse: false },
+  tag3: { id: "tag3", name: "Miguel P", roomId: 1769697072570, type: "nurse", inUse: false },
+  tag4: { id: "tag4", name: "Mitch R", roomId: 1769697039975, type: "nurse", inUse: false },
+  tag5: { id: "tag5", name: "Stretcher 1", roomId: 1769697177914, type: "stretcher", inUse: false },
+  tag6: { id: "tag6", name: "Stretcher 2", roomId: 1769697177914, type: "stretcher", inUse: false },
+  tag7: { id: "tag7", name: "ECG Machine", roomId: 1769697228412, type: "ecg_machine", inUse: false },
+  tag8: { id: "tag8", name: "Heart Monitor 2", roomId: 1769697228412, type: "heart_monitor", inUse: false },
 };
-
 
 app.get("/api/assets", (req, res) => {
   res.json(Object.values(assets));
@@ -46,7 +45,6 @@ wss.on("connection", (ws) => {
   ws.send(JSON.stringify({ type: "hello" }));
 });
 
-
 function broadcast(payload) {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
@@ -54,6 +52,25 @@ function broadcast(payload) {
     }
   });
 }
+
+// --- Emergency alert function ---
+function sendEmergencyAlert(nurseId, message = "Emergency!") {
+  const nurse = assets[nurseId];
+  if (!nurse) return;
+
+  const payload = {
+    type: "emergency_alert",
+    nurseId: nurse.id,
+    nurseName: nurse.name,
+    roomId: nurse.roomId,
+    message,
+    timestamp: Date.now(),
+  };
+
+  broadcast(payload);
+  console.log("Emergency alert sent:", payload);
+}
+
 
 setInterval(() => {
   const floor = loadFloor();
