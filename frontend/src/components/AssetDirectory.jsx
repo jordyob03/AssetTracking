@@ -7,7 +7,6 @@ export default function AssetDirectory({
   visibleTypes,
   setVisibleTypes
 }) {
-
   const [openTypes, setOpenTypes] = useState({});
 
   const getRoomName = (roomId) => {
@@ -45,72 +44,114 @@ export default function AssetDirectory({
         <p className="text-gray-500">No active assets</p>
       ) : (
         <div className="space-y-3">
+          {Object.entries(groupedAssets).map(([type, typeAssets]) => {
 
-          {Object.entries(groupedAssets).map(([type, typeAssets]) => (
+            const available = typeAssets.filter(a => !a.inUse);
+            const inUse = typeAssets.filter(a => a.inUse);
 
-            <div key={type} className="border rounded-md">
+            const isNurse = type === "nurse";
 
-              <button
-                onClick={() => toggleType(type)}
-                className="w-full text-left p-3 bg-gray-100 hover:bg-gray-200 font-medium flex justify-between items-center"
-              >
+            return (
+              <div key={type} className="border rounded-md p-2">
 
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleType(type)}
+                  className="w-full text-left bg-gray-100 hover:bg-gray-200 font-medium flex justify-between items-center p-2 rounded"
+                >
+                  <div className="flex items-center gap-2">
 
-                  <input
-                    type="checkbox"
-                    checked={visibleTypes[type] ?? true}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleVisibility(type);
-                    }}
-                  />
+                    <input
+                      type="checkbox"
+                      checked={visibleTypes[type] ?? true}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleVisibility(type);
+                      }}
+                    />
 
-                  <span
-                    className="w-3 h-3 rounded-full"
-                    style={{
-                      backgroundColor:
-                        assetTypes[type]?.color || "gray",
-                    }}
-                  />
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor:
+                          assetTypes[type]?.color || "gray",
+                      }}
+                    />
 
-                  <span>
-                    {assetTypes[type]?.label || type} ({typeAssets.length})
-                  </span>
+                    <span>
+                      {assetTypes[type]?.label || type} ({typeAssets.length})
+                    </span>
 
-                </div>
+                  </div>
 
-                <span>
-                  {openTypes[type] ? "−" : "+"}
-                </span>
+                  <span>{openTypes[type] ? "−" : "+"}</span>
+                </button>
 
-              </button>
+                {openTypes[type] && (
+                  <div className="p-2 space-y-2">
 
-              {openTypes[type] && (
-                <ul className="p-2 space-y-2">
+                    {/* Nurses just show normally */}
+                    {isNurse && (
+                      <ul className="space-y-1">
+                        {typeAssets.map((a) => (
+                          <li
+                            key={a.id}
+                            className="p-1 bg-gray-50 rounded border"
+                          >
+                            {a.name} (Room: {getRoomName(a.roomId)})
+                          </li>
+                        ))}
+                      </ul>
+                    )}
 
-                  {typeAssets.map((asset) => (
-                    <li
-                      key={asset.id}
-                      className="p-2 bg-gray-50 rounded border"
-                    >
-                      <div className="font-medium text-gray-900">
-                        {asset.name}
-                      </div>
+                    {/* Other asset types show Available / In Use */}
+                    {!isNurse && (
+                      <>
+                        {available.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-sm font-semibold text-green-700 mb-1">
+                              Available
+                            </div>
 
-                      <div className="text-sm text-gray-600">
-                        Room: {getRoomName(asset.roomId)}
-                      </div>
-                    </li>
-                  ))}
+                            <ul className="space-y-1">
+                              {available.map((a) => (
+                                <li
+                                  key={a.id}
+                                  className="p-1 bg-green-50 rounded border"
+                                >
+                                  {a.name} (Room: {getRoomName(a.roomId)})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
 
-                </ul>
-              )}
+                        {inUse.length > 0 && (
+                          <div>
+                            <div className="text-sm font-semibold text-red-700 mb-1">
+                              In Use
+                            </div>
 
-            </div>
+                            <ul className="space-y-1">
+                              {inUse.map((a) => (
+                                <li
+                                  key={a.id}
+                                  className="p-1 bg-red-50 rounded border"
+                                >
+                                  {a.name} (Room: {getRoomName(a.roomId)})
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    )}
 
-          ))}
+                  </div>
+                )}
 
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

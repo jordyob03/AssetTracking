@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Stage, Layer, Rect, Text, Circle, Group } from "react-konva";
+import { Stage, Layer, Rect, Text, Circle, Group, Line } from "react-konva";
 
 export default function FloorMapViewer({
   floorData,
@@ -7,7 +7,6 @@ export default function FloorMapViewer({
   assetTypes = {},
   visibleTypes = {}
 }) {
-
   const containerRef = useRef(null);
   const stageRef = useRef(null);
 
@@ -58,10 +57,13 @@ export default function FloorMapViewer({
       >
         <Layer>
 
+          {/* 🏠 ROOMS + GRID ASSETS */}
           {floorData.rooms?.map((room) => {
-
             const roomAssets = assets.filter(
-              (a) => a.roomId === room.id && visibleTypes[a.type]
+              (a) =>
+                a.roomId === room.id &&
+                visibleTypes[a.type] &&
+                (a.x === undefined || a.y === undefined) // only old system
             );
 
             const count = roomAssets.length;
@@ -77,7 +79,6 @@ export default function FloorMapViewer({
 
             return (
               <Group key={room.id} x={room.x} y={room.y}>
-
                 <Rect
                   width={room.width}
                   height={room.height}
@@ -96,47 +97,90 @@ export default function FloorMapViewer({
                 />
 
                 {roomAssets.map((asset, i) => {
-
                   const col = i % cols;
                   const row = Math.floor(i / cols);
 
                   const x = PADDING + col * cellW + cellW / 2;
                   const y = PADDING + row * cellH + cellH / 2;
 
+                  const radius =
+                    asset.type === "nurse"
+                      ? ICON_RADIUS * 1.8
+                      : ICON_RADIUS;
+
+                  const isInUse = asset.inUse;
+
+                  const xSize = radius * 0.6;
+
                   return (
                     <Group key={asset.id} x={x} y={y}>
+                      <Circle
+                        radius={radius}
+                        fill={assetTypes[asset.type]?.color || "gray"}
+                        opacity={isInUse ? 0.7 : 1}
+                      />
 
-                      {asset.type === "nurse" ? (
-                        <>
-                          <Circle
-                            radius={ICON_RADIUS * 1.8}
-                            fill={assetTypes[asset.type]?.color || "green"}
-                          />
-
-                          <Text
-                            text={getInitials(asset.name)}
-                            fontSize={0.35}
-                            fill="white"
-                            width={ICON_RADIUS * 3.6}
-                            align="center"
-                            offsetX={(ICON_RADIUS * 3.6) / 2}
-                            offsetY={0.18}
-                          />
-                        </>
-                      ) : (
-                        <Circle
-                          radius={ICON_RADIUS}
-                          fill={assetTypes[asset.type]?.color || "gray"}
+                      {asset.type === "nurse" && (
+                        <Text
+                          text={getInitials(asset.name)}
+                          fontSize={0.35}
+                          fill="white"
+                          width={radius * 2}
+                          align="center"
+                          offsetX={radius}
+                          offsetY={0.18}
                         />
                       )}
 
+                      {isInUse && (
+                        <>
+                          <Line
+                            points={[-xSize, -xSize, xSize, xSize]}
+                            stroke="black"
+                            strokeWidth={0.04}
+                          />
+                          <Line
+                            points={[-xSize, xSize, xSize, -xSize]}
+                            stroke="black"
+                            strokeWidth={0.04}
+                          />
+                        </>
+                      )}
                     </Group>
                   );
                 })}
-
               </Group>
             );
           })}
+
+          {/* 🌍 GLOBAL COORDINATE ASSETS */}
+          {assets
+            .filter(a => a.x !== undefined && a.y !== undefined && visibleTypes[a.type])
+            .map(asset => {
+              const radius =
+                asset.type === "nurse" ? ICON_RADIUS * 1.8 : ICON_RADIUS;
+
+              return (
+                <Group key={asset.id} x={asset.x} y={asset.y}>
+                  <Circle
+                    radius={radius}
+                    fill={assetTypes[asset.type]?.color || "gray"}
+                  />
+
+                  {asset.type === "nurse" && (
+                    <Text
+                      text={getInitials(asset.name)}
+                      fontSize={0.35}
+                      fill="white"
+                      width={radius * 2}
+                      align="center"
+                      offsetX={radius}
+                      offsetY={0.18}
+                    />
+                  )}
+                </Group>
+              );
+            })}
 
         </Layer>
       </Stage>

@@ -8,57 +8,103 @@ export default function LiveTrackingPage() {
   const [assets, setAssets] = useState([]);
   const [assetTypes, setAssetTypes] = useState({});
   const [visibleTypes, setVisibleTypes] = useState({});
+  const [emergencyAlerts, setEmergencyAlerts] = useState([]);
+
+  // toggle mode
+  const [useCoordinates, setUseCoordinates] = useState(false);
 
   useEffect(() => {
-    async function fetchFloor() {
-      try {
-        const res = await fetch("/floor-plan.json");
-        if (!res.ok) throw new Error("Failed to fetch floor plan");
-        const data = await res.json();
-        setFloorData(data);
-      } catch (err) {
-        console.error("Error loading floor plan:", err);
-      }
-    }
+    fetch("/floor-plan.json")
+      .then(res => res.json())
+      .then(setFloorData);
 
-    async function fetchAssetTypes() {
-      try {
-        const res = await fetch("/asset-types.json");
-        const data = await res.json();
+    fetch("/asset-types.json")
+      .then(res => res.json())
+      .then(data => {
         setAssetTypes(data);
-
         const defaults = {};
-        Object.keys(data).forEach((t) => (defaults[t] = true));
+        Object.keys(data).forEach(t => (defaults[t] = true));
         setVisibleTypes(defaults);
-      } catch (err) {
-        console.error("Error loading asset types:", err);
-      }
-    }
-
-    fetchFloor();
-    fetchAssetTypes();
+      });
   }, []);
 
+  // 🔌 MAIN BACKEND (room-based)
   useEffect(() => {
+    if (useCoordinates) return;
+
     const ws = new WebSocket("ws://localhost:4000");
 
     ws.onmessage = (msg) => {
       const data = JSON.parse(msg.data);
+
       if (data.type === "asset_update") {
+        setAssets(data.assets);
+      }
+
+      if (data.type === "emergency_alert") {
+        setEmergencyAlerts(prev => [...prev, data]);
+
+        setTimeout(() => {
+          setEmergencyAlerts(prev =>
+            prev.filter(a => a.timestamp !== data.timestamp)
+          );
+        }, 10000);
+      }
+    };
+
+    return () => ws.close();
+  }, [useCoordinates]);
+
+  // 🔌 POSITION BACKEND (coordinate-based)
+  useEffect(() => {
+    if (!useCoordinates) return;
+
+    const ws = new WebSocket("ws://localhost:5000");
+
+    ws.onmessage = (msg) => {
+      const data = JSON.parse(msg.data);
+
+      if (data.type === "position_update") {
         setAssets(data.assets);
       }
     };
 
     return () => ws.close();
-  }, []);
+  }, [useCoordinates]);
+
+  const getRoomName = (roomId) => {
+    const room = floorData?.rooms?.find((r) => r.id === roomId);
+    return room ? room.name : "Unknown";
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <TopNav />
 
+      {/* 🔘 MODE TOGGLE */}
+      <div className="p-4">
+        <button
+          onClick={() => setUseCoordinates(prev => !prev)}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Mode: {useCoordinates ? "Coordinates" : "Room-based"}
+        </button>
+      </div>
+
+      {/* 🚨 ALERTS */}
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col gap-4 items-center w-full px-4">
+        {emergencyAlerts.map((alert) => (
+          <div
+            key={alert.timestamp}
+            className="bg-red-600 text-white p-6 rounded shadow-lg animate-pulse text-2xl font-bold text-center max-w-3xl w-full"
+          >
+            🚨 {alert.nurseName} in {getRoomName(alert.roomId)}: {alert.message}
+          </div>
+        ))}
+      </div>
+
       <main className="flex-1 w-full p-6">
         <div className="flex gap-6 w-full">
-
           <AssetDirectory
             assets={assets}
             floorData={floorData}
@@ -78,10 +124,9 @@ export default function LiveTrackingPage() {
                 />
               </div>
             ) : (
-              <p className="text-gray-500">Loading floor plan...</p>
+              <p>Loading...</p>
             )}
           </div>
-
         </div>
       </main>
     </div>
